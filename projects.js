@@ -45,7 +45,7 @@ const siteData = {
       // 클릭 시 보여줄 상세 이미지 목록
       detailMedia: [
         "img/IMG_6204.JPG",
-        "img/IMG_3607.JPG"
+        "img/IMG_3607.jpg"
       ]
     },
     {
