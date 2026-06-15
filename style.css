@@ -1,0 +1,635 @@
+/* ==========================================================================
+   MINIMALIST CENTER-FOCUS SCROLL STYLING (style.css)
+   ========================================================================== */
+
+/* --- Custom Font --- */
+@font-face {
+    font-family: 'Season';
+    src: url('fonts/SeasonCollectionVF-TRIAL.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* --- Reset & Variables --- */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    cursor: crosshair !important; /* 항상 십자선 커서 사용 */
+}
+
+:root {
+    --bg-color: #ffffff;      /* 배경색: 순백색 */
+    --text-color: #000000;    /* 텍스트색: 딥블랙 */
+    --text-dim: #cccccc;      /* 비활성 텍스트색: 연한 회색 */
+    --font-heading: 'Season', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-sans: 'Season', -apple-system, sans-serif;
+    --transition-smooth: 0.5s cubic-bezier(0.215, 0.61, 0.355, 1);
+    --transition-fast: 0.25s ease;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden; /* 페이지 자체의 스크롤바는 가리고, 내부에 커스텀 스크롤 제공 */
+    width: 100vw;
+    height: 100vh;
+}
+
+/* 스크롤바 숨기기 */
+::-webkit-scrollbar {
+    display: none;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button {
+    background: none;
+    border: none;
+    font-family: inherit;
+    color: inherit;
+    cursor: pointer;
+    outline: none;
+}
+
+/* ==========================================================================
+   1. 고정 헤더 (Header)
+   ========================================================================== */
+.site-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 80px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 4vw;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.site-header > * {
+    pointer-events: auto;
+}
+
+/* 좌측 상단 (+) / Close 버튼 */
+.menu-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-sans);
+    font-size: clamp(18px, 1.8vw, 24px);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    transition: transform var(--transition-fast);
+}
+
+.menu-btn-icon {
+    font-family: var(--font-heading);
+    font-size: 30px;
+    font-weight: normal;
+    line-height: 1;
+    display: inline-block;
+    letter-spacing: 0.02em;
+    transition: transform var(--transition-smooth);
+}
+
+.menu-btn-text {
+    opacity: 0;
+    max-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: opacity var(--transition-fast), max-width var(--transition-fast);
+}
+
+/* 메뉴가 열렸을 때 버튼 변화 */
+body.is-menu-open .menu-btn-icon {
+    transform: rotate(45deg); /* + 기호가 x로 변함 */
+}
+
+body.is-menu-open .menu-btn-text {
+    opacity: 1;
+    max-width: 80px;
+}
+
+/* 중앙 로고 */
+.logo-wrap {
+    position: relative;
+    left: 0;
+    transform: none;
+}
+
+.site-logo {
+    font-family: var(--font-heading);
+    font-size: clamp(19.2px, 2.16vw, 26.4px); /* 0.6배로 축소 */
+    font-weight: normal;
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+}
+
+/* ==========================================================================
+   2. 배경 이미지 레이어 (Artistic Preview)
+   ========================================================================== */
+.bg-images-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.bg-image-item {
+    position: absolute;
+    top: 0;
+    left: 50vw;
+    width: 50vw;
+    height: 100vh;
+    opacity: 0;
+    transform: scale(0.98);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), 
+                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bg-image-item.is-active {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.bg-image-item img,
+.bg-image-item video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.bg-image-item img.sub-active,
+.bg-image-item video.sub-active {
+    opacity: 1;
+}
+
+/* ==========================================================================
+   3. 메인 스크롤 뷰 (Scroll Snap View)
+   ========================================================================== */
+.main-scroll-view {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow-y: scroll;
+    scroll-behavior: smooth;
+    scroll-snap-type: y mandatory; /* 완벽하게 중앙에 딱 들어맞는 스크롤 스냅 */
+    z-index: 10;
+    scrollbar-width: none; /* Firefox 스크롤바 제거 */
+}
+
+.main-scroll-view::-webkit-scrollbar {
+    display: none; /* Safari, Chrome 스크롤바 제거 */
+}
+
+/* 첫 항목과 마지막 항목을 정확히 화면 중앙에 세팅하기 위한 스페이서 */
+.scroll-list-spacer {
+    height: 50vh;
+    scroll-snap-align: none;
+}
+
+.scroll-titles-list {
+    display: flex;
+    flex-direction: column;
+    width: 50vw; /* 왼쪽 절반에만 텍스트가 오도록 제한 */
+}
+
+/* 스크롤 타이틀 아이템 */
+.scroll-title-link {
+    display: flex;
+    justify-content: flex-start; /* 왼쪽 정렬 */
+    align-items: center;
+    width: 100%;
+    padding: clamp(12px, 1.7vh, 24px) 4vw; /* 왼쪽/오른쪽 여백 4vw 지정 (줄간격 반으로 조정) */
+    scroll-snap-align: center; /* 브라우저가 화면 중앙에 오도록 스냅을 잡아줌 */
+    transition: transform var(--transition-smooth), filter var(--transition-smooth);
+}
+
+.scroll-title-text {
+    font-family: var(--font-heading);
+    font-size: clamp(15.1px, 3.24vw, 49.7px); /* 0.6x 추가 축소 */
+    font-weight: 500;
+    text-transform: uppercase;
+    text-align: left; /* 왼쪽 정렬 */
+    line-height: 0.53; /* 줄간격 110%로 늘림 (0.48 -> 0.53) */
+    letter-spacing: 0.02em;
+    color: var(--text-dim); /* 기본적으로 회색 */
+    opacity: 0.4;
+    transform: scale(0.77); /* 비활성화 텍스트 크기 0.77배로 조정 (기존 대비 110%) */
+    transform-origin: left center; /* 확대 시 왼쪽 정렬선이 무너지지 않도록 기준점 설정 */
+    transition: color var(--transition-smooth), transform var(--transition-smooth), opacity var(--transition-smooth);
+}
+
+/* 화면 중앙(active)에 위치한 아이템의 스타일 */
+.scroll-title-link.is-active .scroll-title-text {
+    color: var(--text-color); /* 검정색으로 강조 */
+    transform: scale(1.0);    /* 활성화 시 원래 크기로 확대 */
+    opacity: 1.0;
+}
+
+/* ==========================================================================
+   4. 풀스크린 오버레이 공통 (Overlay)
+   ========================================================================== */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--bg-color);
+    z-index: 90;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-20px);
+    transition: opacity var(--transition-smooth), transform var(--transition-smooth);
+    overflow-y: auto;
+}
+
+.overlay.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+/* 오버레이 꼬리표 라벨 */
+.overlay-label {
+    font-family: var(--font-sans);
+    font-size: 16.5px;
+    font-weight: normal;
+    letter-spacing: 0.02em;
+    opacity: 0.4;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+}
+
+/* ==========================================================================
+   5. 메뉴 오버레이 (Menu Overlay)
+   ========================================================================== */
+.menu-overlay-content {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 140px 4vw 80px 4vw;
+}
+
+.menu-grid {
+    display: grid;
+    grid-template-columns: 55% 45%;
+    gap: 6vw;
+}
+
+.menu-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.about-paragraphs {
+    font-family: var(--font-sans);
+    font-size: clamp(24px, 2.7vw, 36px);
+    line-height: 1.6;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+}
+
+.about-paragraphs p {
+    margin-bottom: 1.5em;
+}
+
+.profile-photo {
+    width: 100%;
+    max-width: 320px;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+    margin-bottom: 40px;
+}
+
+.representation-box,
+.contact-box {
+    margin-bottom: 40px;
+}
+
+.rep-item {
+    margin-bottom: 15px;
+}
+
+.rep-role {
+    font-size: 16.5px;
+    opacity: 0.5;
+    display: block;
+    margin-bottom: 4px;
+    letter-spacing: 0.02em;
+}
+
+.rep-name {
+    font-size: 22.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--text-color);
+    letter-spacing: 0.02em;
+}
+
+.contact-links {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.contact-link {
+    font-family: var(--font-heading);
+    font-size: clamp(30px, 3.7vw, 54px);
+    font-weight: normal;
+    text-transform: uppercase;
+    border-bottom: 2px solid transparent;
+    align-self: start;
+    letter-spacing: 0.02em;
+}
+
+.contact-link:hover {
+    border-color: var(--text-color);
+}
+
+/* ==========================================================================
+   6. 아카이브 오버레이 (Archive Overlay)
+   ========================================================================== */
+.archive-overlay-content {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 140px 4vw 100px 4vw;
+}
+
+.archive-headline {
+    font-family: var(--font-heading);
+    font-size: clamp(48px, 6vw, 84px);
+    font-weight: normal;
+    margin-bottom: 40px;
+    letter-spacing: 0.02em;
+}
+
+.archive-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3vw;
+}
+
+.archive-item {
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+}
+
+.archive-img-wrap {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    background-color: #f5f5f5;
+    margin-bottom: 15px;
+}
+
+.archive-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-smooth);
+}
+
+.archive-item:hover .archive-img-wrap img {
+    transform: scale(1.05);
+}
+
+.archive-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.archive-title {
+    font-family: var(--font-heading);
+    font-size: 21px;
+    font-weight: normal;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.archive-year {
+    font-size: 16.5px;
+    opacity: 0.5;
+    letter-spacing: 0.02em;
+}
+
+/* ==========================================================================
+   7. 상세 보기 오버레이 (Detail Overlay)
+   ========================================================================== */
+.detail-overlay {
+    background-color: var(--bg-color);
+    z-index: 95;
+    transform: translateY(100vh); /* 아래에서 위로 슬라이드 */
+}
+
+.detail-overlay.is-open {
+    transform: translateY(0);
+}
+
+.detail-close-btn {
+    position: fixed;
+    top: 20px;
+    right: 4vw;
+    z-index: 105;
+    font-family: var(--font-heading);
+    font-size: 21px;
+    font-weight: normal;
+    padding: 10px 20px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--text-color);
+    letter-spacing: 0.02em;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.detail-close-btn:hover {
+    background-color: var(--text-color);
+    color: var(--bg-color);
+}
+
+.detail-container {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 140px 4vw 160px 4vw;
+}
+
+.detail-header {
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+.detail-title {
+    font-family: var(--font-heading);
+    font-size: clamp(48px, 7.5vw, 108px);
+    font-weight: normal;
+    text-transform: uppercase;
+    line-height: 1.25;
+    margin-bottom: 15px;
+    letter-spacing: 0.02em;
+}
+
+.detail-meta {
+    font-size: 16.5px;
+    opacity: 0.6;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.detail-media-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    width: 100%;
+}
+
+.detail-img-item {
+    width: 100%;
+    overflow: hidden;
+    background-color: #f5f5f5;
+}
+
+.detail-img-item img {
+    width: 100%;
+    display: block;
+    object-fit: contain;
+}
+
+/* 다음 프로젝트 버튼 */
+.detail-next-project {
+    margin-top: 100px;
+    display: flex;
+    justify-content: center;
+}
+
+.detail-next-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.next-label {
+    font-size: 16.5px;
+    opacity: 0.5;
+    letter-spacing: 0.02em;
+}
+
+.next-title {
+    font-family: var(--font-heading);
+    font-size: clamp(36px, 6vw, 72px);
+    font-weight: normal;
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--text-color);
+    padding-bottom: 5px;
+    letter-spacing: 0.02em;
+}
+
+/* ==========================================================================
+   8. 고정 푸터 (Footer)
+   ========================================================================== */
+.site-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 4vw;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.site-footer > * {
+    pointer-events: auto;
+}
+
+/* ARCHIVE_ 토글 버튼 */
+.archive-btn {
+    font-family: var(--font-heading);
+    font-size: clamp(18px, 1.8vw, 24px);
+    font-weight: normal;
+    border-bottom: 2px solid var(--text-color);
+    padding-bottom: 2px;
+    letter-spacing: 0.02em;
+}
+
+.archive-btn:hover {
+    opacity: 0.7;
+}
+
+.copyright {
+    font-size: 7px; /* 0.6x 추가 축소 (가독성을 위해 7px 하한 적용) */
+    opacity: 0.4;
+    letter-spacing: 0.02em;
+}
+
+/* ==========================================================================
+   9. 반응형 처리 (Mobile & Tablet)
+   ========================================================================== */
+@media (max-width: 900px) {
+    /* 모바일에서는 배경 이미지를 고정하지 않고 화면 중심 투명 오버레이로 감싸서 가독성 확보 */
+    .bg-image-item {
+        opacity: 0 !important;
+        display: none !important;
+    }
+    
+    /* 대신 텍스트 리스트 자체를 메인으로 */
+    .scroll-title-text {
+        font-size: clamp(15.1px, 4.86vw, 30.2px); /* 0.6x 추가 축소 */
+    }
+
+    .menu-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+
+    .archive-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 4vw;
+    }
+}
+
+@media (max-width: 600px) {
+    .archive-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+}
+
+/* 마우스 트레일 캔버스 스타일 */
+#trail-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999;
+    pointer-events: none;
+}
